@@ -8,58 +8,117 @@
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
   html,body { height:100%; font-family:"Baloo 2",system-ui,sans-serif; overflow:hidden; background:#1f3a30; }
+
   #stage {
     position:relative; width:100vw; height:100vh; display:grid; place-items:center;
-    text-align:center; color:#fff; transition:background .8s ease;
+    text-align:center; color:#fff; transition:background 1s ease; overflow:hidden;
     background:linear-gradient(160deg,#2f8f6b,#1f3a30);
   }
+
+  /* ---------- ambient background ---------- */
+  #sky { position:absolute; inset:0; z-index:0; pointer-events:none; overflow:hidden; }
+  .sun { position:absolute; top:-90px; right:-90px; width:340px; height:340px; border-radius:50%;
+    background:radial-gradient(circle at 50% 50%, #ffe7a8aa, #ffe7a800 70%); animation:pulse 7s ease-in-out infinite; }
+  @keyframes pulse { 50%{ transform:scale(1.12); opacity:.85; } }
+  .silhouette { position:absolute; bottom:-2vh; font-size:7rem; opacity:.16; filter:grayscale(1) brightness(0);
+    animation:drift linear infinite; }
+  @keyframes drift { from{ transform:translateX(-20vw); } to{ transform:translateX(120vw); } }
+  .leaf { position:absolute; top:-40px; font-size:1.5rem; opacity:.5; animation:floaty linear infinite; }
+  @keyframes floaty { to{ transform:translateY(112vh) rotate(420deg); } }
+
+  /* ---------- slides ---------- */
   .slide {
-    position:absolute; inset:0; display:grid; place-items:center; align-content:center; gap:18px;
-    opacity:0; transform:scale(.96); transition:opacity .6s ease, transform .6s ease; padding:6vw;
+    position:absolute; inset:0; z-index:2; display:grid; place-items:center; align-content:center; gap:20px;
+    opacity:0; transform:scale(.97); transition:opacity .6s ease, transform .6s ease; padding:6vw;
     pointer-events:none;
   }
   .slide.on { opacity:1; transform:scale(1); }
+
+  /* staggered reveal of each slide's children */
+  .slide > * { opacity:0; transform:translateY(22px); transition:opacity .55s ease, transform .55s ease; }
+  .slide.on > * { opacity:1; transform:none; }
+  .slide.on > *:nth-child(1){ transition-delay:.10s; }
+  .slide.on > *:nth-child(2){ transition-delay:.28s; }
+  .slide.on > *:nth-child(3){ transition-delay:.46s; }
+  .slide.on > *:nth-child(4){ transition-delay:.64s; }
+
   .kicker { font-size:clamp(.9rem,2.4vw,1.3rem); letter-spacing:.18em; text-transform:uppercase; color:#ffe7a8; font-weight:700; }
   h1 { font-size:clamp(2rem,7vw,4.6rem); line-height:1.05; font-weight:800; max-width:16ch; }
   h1 .y { color:#f6b93b; } h1 .c { color:#ffd2c2; }
   p.big { font-size:clamp(1.1rem,3.2vw,1.9rem); max-width:24ch; color:#eaf6ef; font-weight:500; }
+
   .emojis { font-size:clamp(3rem,12vw,7rem); display:flex; gap:.15em; }
   .emojis span { display:inline-block; animation:bob 2.6s ease-in-out infinite; }
   .emojis span:nth-child(2){animation-delay:.3s} .emojis span:nth-child(3){animation-delay:.6s}
   .emojis span:nth-child(4){animation-delay:.9s} .emojis span:nth-child(5){animation-delay:1.2s}
   @keyframes bob { 50%{transform:translateY(-16px) rotate(-5deg)} }
+
   .features { display:flex; gap:22px; flex-wrap:wrap; justify-content:center; max-width:900px; }
-  .feat { background:#ffffff18; border:1px solid #ffffff30; border-radius:20px; padding:22px 26px; width:230px; }
+  .feat { background:#ffffff18; border:1px solid #ffffff30; border-radius:20px; padding:22px 26px; width:230px;
+    backdrop-filter:blur(2px); }
   .feat .fi { font-size:2.6rem; } .feat b { display:block; font-size:1.2rem; margin:8px 0 4px; }
   .feat small { color:#cfe6da; font-size:.95rem; }
+
   .pricebadge { background:#f6b93b; color:#5a3d00; font-weight:800; font-size:clamp(1.4rem,5vw,2.6rem);
-    padding:14px 34px; border-radius:999px; box-shadow:0 14px 30px rgba(0,0,0,.3); }
-  .url { font-size:clamp(1.1rem,3vw,1.6rem); color:#ffe7a8; font-weight:700; }
-  .word-demo { background:#fff; color:#2b2a28; border-radius:26px; padding:26px 40px; box-shadow:0 18px 40px rgba(0,0,0,.3); }
+    padding:14px 34px; border-radius:999px; box-shadow:0 14px 30px rgba(0,0,0,.3); animation:pop .6s ease both; }
+  @keyframes pop { 0%{ transform:scale(.6); } 60%{ transform:scale(1.08); } 100%{ transform:scale(1); } }
+
+  .badge-row { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; max-width:760px; }
+  .pill { background:#ffffff20; border-radius:999px; padding:8px 18px; font-weight:700; font-size:clamp(.85rem,2.4vw,1.1rem); }
+
+  /* ---------- animated demo loop ---------- */
+  .demo { display:grid; place-items:center; gap:18px; }
+  .word-demo { background:#fff; color:#2b2a28; border-radius:26px; padding:26px 44px; box-shadow:0 18px 40px rgba(0,0,0,.3);
+    display:grid; place-items:center; gap:8px; min-width:min(80vw,360px); }
   .word-demo .we { font-size:clamp(4rem,14vw,7rem); }
   .word-demo .wt { font-size:clamp(1.8rem,6vw,3rem); font-weight:800; }
   .word-demo .wt b { color:#e8714e; }
-  .badge-row { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
-  .pill { background:#ffffff20; border-radius:999px; padding:8px 18px; font-weight:700; font-size:clamp(.85rem,2.4vw,1.1rem); }
+  .mic { font-size:clamp(2.4rem,8vw,3.6rem); display:inline-grid; place-items:center; width:1.6em; height:1.6em;
+    border-radius:50%; background:#e8714e22; }
+  .mic.live { animation:miclive 1s ease-in-out infinite; background:#e8714e44; }
+  @keyframes miclive { 50%{ transform:scale(1.18); box-shadow:0 0 0 14px #e8714e11; } }
+  .loop-steps { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
+  .step { background:#ffffff20; border-radius:999px; padding:8px 16px; font-weight:700; font-size:clamp(.85rem,2.4vw,1.05rem);
+    opacity:.45; transition:.3s; }
+  .step.active { opacity:1; background:#f6b93b; color:#5a3d00; transform:translateY(-3px); }
+  .reward { font-size:clamp(3rem,11vw,5.5rem); opacity:0; transform:scale(.4); transition:.4s; }
+  .reward.show { opacity:1; transform:scale(1); animation:bob 2.6s ease-in-out infinite .4s; }
 
-  /* start + controls */
+  /* ---------- final CTA ---------- */
+  .url { display:inline-block; font-size:clamp(1.1rem,3.6vw,1.9rem); color:#5a3d00; font-weight:800;
+    background:#f6b93b; padding:14px 32px; border-radius:999px; box-shadow:0 0 0 0 #f6b93b88; animation:glow 1.8s ease-in-out infinite; }
+  @keyframes glow { 50%{ box-shadow:0 0 34px 6px #f6b93b66; } }
+
+  /* ---------- start + controls ---------- */
   #start {
-    position:absolute; inset:0; background:linear-gradient(160deg,#2f8f6b,#1f3a30); z-index:20;
+    position:absolute; inset:0; background:linear-gradient(160deg,#2f8f6b,#1f3a30); z-index:30;
     display:grid; place-items:center; align-content:center; gap:24px; text-align:center; color:#fff; cursor:pointer;
   }
-  #start .logo { font-size:clamp(4rem,16vw,8rem); }
+  #start .logo { font-size:clamp(4rem,16vw,8rem); animation:bob 2.6s ease-in-out infinite; }
   #start h2 { font-size:clamp(1.8rem,6vw,3.4rem); font-weight:800; }
-  #start .play { background:#f6b93b; color:#5a3d00; font-weight:800; font-size:1.3rem; padding:16px 40px; border-radius:999px; }
-  #start small { color:#cfe6da; }
-  #bar { position:absolute; bottom:0; left:0; height:6px; background:#f6b93b; width:0; z-index:15; }
-  #replay { position:absolute; bottom:18px; right:20px; z-index:18; background:#ffffff25; color:#fff; border:none;
+  #start .play { background:#f6b93b; color:#5a3d00; font-weight:800; font-size:1.3rem; padding:16px 40px; border-radius:999px;
+    box-shadow:0 14px 30px rgba(0,0,0,.3); }
+  #start small { color:#cfe6da; max-width:30ch; }
+  #voiceSel { font-family:inherit; font-weight:700; font-size:1rem; padding:10px 16px; border-radius:999px;
+    border:1px solid #ffffff40; background:#ffffff18; color:#fff; cursor:pointer; max-width:80vw; }
+  #voiceSel option { color:#2b2a28; }
+  #bar { position:absolute; bottom:0; left:0; height:6px; background:#f6b93b; width:0; z-index:25; }
+  #replay { position:absolute; bottom:18px; right:20px; z-index:28; background:#ffffff25; color:#fff; border:none;
     padding:10px 18px; border-radius:999px; font-family:inherit; font-weight:700; cursor:pointer; display:none; }
-  .confetti { position:absolute; top:-30px; font-size:1.6rem; z-index:10; animation:fall linear forwards; }
+  .confetti { position:absolute; top:-30px; font-size:1.6rem; z-index:20; animation:fall linear forwards; }
   @keyframes fall { to { transform:translateY(110vh) rotate(540deg); } }
 </style>
 </head>
 <body>
 <div id="stage">
+
+  <!-- ambient background -->
+  <div id="sky">
+    <div class="sun"></div>
+    <div class="silhouette" style="left:0; animation-duration:34s;">🐘</div>
+    <div class="silhouette" style="left:0; font-size:5rem; animation-duration:26s; animation-delay:-12s;">🦒</div>
+    <div class="silhouette" style="left:0; font-size:4rem; animation-duration:40s; animation-delay:-22s;">🦓</div>
+  </div>
 
   <!-- SLIDES -->
   <div class="slide" data-bg="linear-gradient(160deg,#6cc3e0,#2f8f6b)">
@@ -71,16 +130,25 @@
   <div class="slide" data-bg="linear-gradient(160deg,#e8714e,#1f3a30)">
     <div class="kicker">The problem</div>
     <h1>Articulation drills get <span class="c">boring</span> fast.</h1>
-    <p class="big">Repetition is what works — but it's the hardest thing to keep a child doing.</p>
+    <p class="big">Repetition is what works, but it's the hardest thing to keep a child doing.</p>
   </div>
 
   <div class="slide" data-bg="linear-gradient(160deg,#f6b93b,#e8714e)">
     <div class="kicker">Meet Sound Safari</div>
-    <div class="word-demo">
-      <div class="we">🐍</div>
-      <div class="wt"><b>s</b>nake</div>
+    <div class="demo">
+      <div class="word-demo">
+        <div class="we">🐍</div>
+        <div class="wt"><b>s</b>nake</div>
+      </div>
+      <div class="mic" id="demoMic">🎤</div>
+      <div class="loop-steps">
+        <span class="step" data-step="0">Hear it</span>
+        <span class="step" data-step="1">Say it</span>
+        <span class="step" data-step="2">Record it</span>
+        <span class="step" data-step="3">Collect it</span>
+      </div>
+      <div class="reward" id="demoReward">🐍✨</div>
     </div>
-    <p class="big">Hear it · say it · record it · collect the animal.</p>
   </div>
 
   <div class="slide" data-bg="linear-gradient(160deg,#2f8f6b,#1f3a30)">
@@ -111,7 +179,7 @@
   <div class="slide" data-bg="linear-gradient(160deg,#f6b93b,#e8714e)">
     <div class="emojis"><span>🦁</span></div>
     <h1>Start the safari today.</h1>
-    <div class="url" id="finalUrl">Sound Safari</div>
+    <div class="url">soundsafarisa.netlify.app</div>
     <p class="big">Speech sounds, made irresistible.</p>
   </div>
 
@@ -119,55 +187,170 @@
   <div id="start">
     <div class="logo">🦁</div>
     <h2>Sound Safari</h2>
-    <div class="play">▶ Play promo (with sound)</div>
-    <small>Tip: screen-record this to share, or just send the link.</small>
+    <div class="play">▶ Play promo</div>
+    <select id="voiceSel" title="Narrator voice"></select>
+    <small>Pick a narrator voice above, then play. Tip: screen-record this to share.</small>
   </div>
   <button id="replay">↻ Replay</button>
   <div id="bar"></div>
 </div>
 
 <script>
-const stage = document.getElementById("stage");
-const slides = [...document.querySelectorAll(".slide")];
-const bar = document.getElementById("bar");
+const stage   = document.getElementById("stage");
+const slides  = [...document.querySelectorAll(".slide")];
+const bar     = document.getElementById("bar");
 const startEl = document.getElementById("start");
-const replay = document.getElementById("replay");
+const replay  = document.getElementById("replay");
 
-// narration lines per slide (Web Speech)
+// per-slide fallback time (ms) - used when no voice is selected.
+const DUR = [4200, 5600, 6200, 5600, 4800, 5600, 5200];
+
+// narrator lines per slide
 const narration = [
   "Speech sound practice kids actually want to do.",
   "Articulation drills get boring fast. Repetition is what works, but it's the hardest thing to keep a child doing.",
-  "Meet Sound Safari. Hear it. Say it. Record it. Collect the animal.",
+  "Meet Sound Safari. Hear it, say it, record it, and collect the animal.",
   "Built on the science. Massed practice, placement cues, and session data for your notes.",
   "One safari, every sound. Nine sounds, three positions, from single words to sentences.",
   "Play free. Unlock everything for a once-off two hundred rand. Pay once, it's yours forever.",
   "Start the safari today. Speech sounds, made irresistible."
 ];
-const DUR = 5200; // ms per slide
+const MIN = 3200;   // min ms a slide stays up when speaking
+const MAX = 9500;   // safety cap
+
 let timers = [];
+let voice  = null;          // chosen SpeechSynthesisVoice (null = no voice)
+const sel  = document.getElementById("voiceSel");
 
-function clearTimers(){ timers.forEach(t=>clearTimeout(t)); timers=[]; speechSynthesis && speechSynthesis.cancel(); }
+// rank voices so the nicest sits at the top of the dropdown
+function voiceScore(v){
+  const n = v.name.toLowerCase();
+  let s = 0;
+  if (/google/.test(n)) s += 50;
+  if (/premium|enhanced|neural|natural/.test(n)) s += 60;
+  if (/siri/.test(n)) s += 45;
+  if (/(samantha|karen|moira|tessa|fiona|serena|ava|zoe|aria|jenny|libby|sonia)/.test(n)) s += 20;
+  if (/^en-gb/i.test(v.lang)) s += 80;   // keep the British voice as default
+  else if (/^en/i.test(v.lang)) s += 8;
+  if (/female/.test(n)) s += 5;
+  return s;
+}
+function populateVoices(){
+  if (!("speechSynthesis" in window) || !sel) return;
+  const vs = speechSynthesis.getVoices().filter(v => /^en/i.test(v.lang));
+  if (!vs.length) return;
+  vs.sort((a,b)=> voiceScore(b) - voiceScore(a));
+  sel.innerHTML = "";
+  vs.forEach((v,i)=>{
+    const o = document.createElement("option");
+    o.value = v.name; o.textContent = "🔊 " + v.name.replace(/\(.*?\)/,"").trim() + (/premium|enhanced|neural|siri/i.test(v.name) ? " ✨" : "");
+    sel.appendChild(o);
+  });
+  const none = document.createElement("option");
+  none.value = "__none__"; none.textContent = "🔇 No voice (sound effects only)";
+  sel.appendChild(none);
+  voice = vs[0];
+  sel.value = voice.name;
+}
+function applyVoiceChoice(){
+  if (!sel) return;
+  if (sel.value === "__none__"){ voice = null; return; }
+  voice = speechSynthesis.getVoices().find(v => v.name === sel.value) || null;
+}
+if ("speechSynthesis" in window){
+  populateVoices();
+  speechSynthesis.onvoiceschanged = populateVoices;
+  if (sel) sel.addEventListener("change", e=>{ e.stopPropagation(); applyVoiceChoice(); });
+  if (sel) sel.addEventListener("click", e=> e.stopPropagation());
+}
 
-function show(i){
+// ---- gentle sound effects (WebAudio) ----
+let actx = null;
+function audio(){ if(!actx){ try{ actx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } return actx; }
+function chime(freq=523, dur=0.5, type="sine", gain=0.18){
+  const a = audio(); if(!a) return;
+  const o = a.createOscillator(), g = a.createGain();
+  o.type = type; o.frequency.value = freq;
+  o.connect(g); g.connect(a.destination);
+  const t = a.currentTime;
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(gain, t+0.03);
+  g.gain.exponentialRampToValueAtTime(0.0001, t+dur);
+  o.start(t); o.stop(t+dur);
+}
+// soft two-note marimba on each slide
+function slideCue(){ chime(392,0.45,"triangle",0.12); setTimeout(()=>chime(523,0.5,"triangle",0.12),120); }
+function popCue(){ chime(784,0.35,"sine",0.16); }
+function winCue(){ [523,659,784,1047].forEach((f,i)=> setTimeout(()=>chime(f,0.6,"sine",0.16), i*110)); }
+
+function clearTimers(){ timers.forEach(t=>clearTimeout(t)); timers=[]; if("speechSynthesis" in window) speechSynthesis.cancel(); }
+
+// drifting leaves
+function spawnLeaves(){
+  const sky = document.getElementById("sky");
+  const kinds = ["🍃","🌿","🍂"];
+  for (let i=0;i<10;i++){
+    const l = document.createElement("div"); l.className = "leaf";
+    l.textContent = kinds[i%kinds.length];
+    l.style.left = (i*11%100)+"vw";
+    l.style.animationDuration = (9 + (i%5)*2) + "s";
+    l.style.animationDelay = (-(i*1.7)) + "s";
+    sky.appendChild(l);
+  }
+}
+
+// the animated hear/say/record/collect loop on slide 3
+let demoTimers = [];
+function playDemo(){
+  demoTimers.forEach(t=>clearTimeout(t)); demoTimers=[];
+  const steps  = [...document.querySelectorAll(".step")];
+  const mic    = document.getElementById("demoMic");
+  const reward = document.getElementById("demoReward");
+  if (!steps.length) return;
+  steps.forEach(s=>s.classList.remove("active"));
+  mic.classList.remove("live"); reward.classList.remove("show");
+  const seq = [600,1500,2400,3300];
+  steps.forEach((s,i)=> demoTimers.push(setTimeout(()=>{
+    steps.forEach(x=>x.classList.remove("active")); s.classList.add("active");
+    if (i===2) mic.classList.add("live");
+    if (i===3){ mic.classList.remove("live"); reward.classList.add("show"); popCue(); }
+  }, seq[i])));
+}
+
+function advance(i){
+  if (i >= slides.length){ replay.style.display="block"; return; }
   slides.forEach(s=>s.classList.remove("on"));
   const s = slides[i]; s.classList.add("on");
   if (s.dataset.bg) stage.style.background = s.dataset.bg;
-  // narrate
-  if ("speechSynthesis" in window && narration[i]) {
-    const u = new SpeechSynthesisUtterance(narration[i]);
-    u.rate = 0.96; u.pitch = 1.0;
-    speechSynthesis.speak(u);
-  }
+  bar.style.transition = "width .5s ease"; bar.style.width = ((i+1)/slides.length*100)+"%";
+
+  if (i === slides.length-1) winCue(); else if (!voice) slideCue();
+  if (i === 2) playDemo();
   if (i === slides.length-1) burst();
+
+  const next = ()=> advance(i+1);
+
+  if (voice && "speechSynthesis" in window && narration[i]){
+    const u = new SpeechSynthesisUtterance(narration[i]);
+    u.voice = voice; u.rate = 0.98; u.pitch = 1.05;
+    let done = false, spoke = false, minOk = false;
+    const go = ()=>{ if(done) return; done = true; next(); };
+    timers.push(setTimeout(()=>{ minOk = true; if (spoke) go(); }, MIN));
+    timers.push(setTimeout(go, MAX));                 // safety if onend never fires
+    u.onend = ()=>{ spoke = true; if (minOk) go(); };
+    speechSynthesis.speak(u);
+  } else {
+    timers.push(setTimeout(next, DUR[i] || 5200));
+  }
 }
 
 function run(){
   clearTimers();
+  applyVoiceChoice();
   bar.style.transition = "none"; bar.style.width = "0";
-  const total = DUR * slides.length;
-  requestAnimationFrame(()=>{ bar.style.transition = `width ${total}ms linear`; bar.style.width = "100%"; });
-  slides.forEach((_, i)=> timers.push(setTimeout(()=>show(i), i*DUR)) );
-  timers.push(setTimeout(()=>{ replay.style.display="block"; }, total));
+  replay.style.display = "none";
+  if (actx && actx.state === "suspended") actx.resume();
+  requestAnimationFrame(()=> advance(0));
 }
 
 function burst(){
@@ -183,8 +366,9 @@ function burst(){
   }
 }
 
-startEl.addEventListener("click", ()=>{ startEl.style.display="none"; run(); });
-replay.addEventListener("click", ()=>{ replay.style.display="none"; run(); });
+spawnLeaves();
+startEl.addEventListener("click", ()=>{ audio(); if(actx&&actx.state==="suspended") actx.resume(); startEl.style.display="none"; run(); });
+replay.addEventListener("click", run);
 </script>
 </body>
 </html>

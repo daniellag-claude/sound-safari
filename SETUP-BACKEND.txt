@@ -1,0 +1,73 @@
+SOUND SAFARI - DEVICE-BOUND CODE BACKEND (setup guide)
+======================================================
+This makes each code work on ONE device only, so a paid code can't be
+shared with 10 friends. It's free, using Google. Takes about 10 minutes.
+You only do this once.
+
+Until you finish this, the site still works in "honesty mode" using the
+local list - so nothing is broken if you set it up later.
+
+----------------------------------------------------------------------
+STEP 1 - Make the Google Sheet (your customer + code list)
+----------------------------------------------------------------------
+1. Go to sheets.google.com and create a new blank spreadsheet.
+2. Name it "Sound Safari codes".
+3. Rename the bottom tab from "Sheet1" to exactly:  Codes
+4. Import your codes:
+   - File menu -> Import -> Upload -> choose codes.csv from this folder.
+   - Choose "Replace current sheet" -> Import data.
+   You should now see columns: Code | Customer | Device | Active | RedeemedAt
+   (Leave Device and RedeemedAt blank - they fill in automatically.)
+
+----------------------------------------------------------------------
+STEP 2 - Add the code (the backend logic)
+----------------------------------------------------------------------
+1. In the Sheet, click  Extensions -> Apps Script.
+2. Delete whatever is in the editor.
+3. Open backend.gs from this folder, copy ALL of it, paste it in.
+4. Click the Save icon (disk).
+
+----------------------------------------------------------------------
+STEP 3 - Publish it as a web app
+----------------------------------------------------------------------
+1. Top right, click  Deploy -> New deployment.
+2. Click the gear icon -> choose "Web app".
+3. Settings:
+      Description:  Sound Safari
+      Execute as:   Me
+      Who has access:  Anyone        <-- IMPORTANT, must be "Anyone"
+4. Click Deploy. Approve/allow the permissions when Google asks
+   (it's your own script, that's normal).
+5. Copy the "Web app URL". It looks like:
+      https://script.google.com/macros/s/AKfy....../exec
+
+----------------------------------------------------------------------
+STEP 4 - Plug the URL into the site
+----------------------------------------------------------------------
+1. Open app.js from this folder.
+2. Near the top find:   const BACKEND_URL = "";
+3. Paste your URL between the quotes:
+      const BACKEND_URL = "https://script.google.com/macros/s/AKfy....../exec";
+4. Save. Done - the site is now device-bound.
+
+----------------------------------------------------------------------
+HOW YOU RUN IT DAY TO DAY
+----------------------------------------------------------------------
+- A customer pays you R200 -> pick the next unused code from the Sheet,
+  type their name in the Customer column, and send them the code.
+- When they enter it, their device gets bound automatically (you'll see
+  it appear in the Device column).
+- They can keep using it forever on that device.
+- If someone tries the same code on a 2nd device, the site refuses it.
+
+TO LET A CUSTOMER MOVE TO A NEW PHONE:
+  Clear the Device cell for their code in the Sheet. Next phone they use
+  will bind to it.
+
+TO CUT SOMEONE OFF (e.g. a refund or abuse):
+  Change their Active cell to  FALSE. The site locks them out next load.
+
+TO ADD MORE CODES LATER:
+  Just type new rows in the Sheet (Code + Active = TRUE). No re-deploy needed.
+
+That's it. The Sheet is your whole admin panel.

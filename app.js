@@ -14,7 +14,8 @@ const BACKEND_URL = "https://script.google.com/macros/s/AKfycbzEjC8cmk8eQrzsVgrl
 /* Your personal master code. Always unlocks, on ANY device, and is never
    device-bound by the backend. For demos and your own phones. */
 const MASTER_CODE = "DANI-MASTER";
-const isMasterCode = c => (c || "").trim().toUpperCase() === MASTER_CODE;
+// match however it's typed: "dani master", "DANIMASTER", "dani-master" all work
+const isMasterCode = c => (c || "").replace(/[^a-z0-9]/gi, "").toUpperCase() === "DANIMASTER";
 
 /* ---- tiny helpers ---- */
 const $ = (s, r = document) => r.querySelector(s);

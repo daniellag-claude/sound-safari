@@ -19,7 +19,7 @@ const SOUNDS = {
       medial: [
         { w: "bicycle", e: "🚲" }, { w: "pencil", e: "✏️" }, { w: "castle", e: "🏰" },
         { w: "glasses", e: "👓" }, { w: "dinosaur", e: "🦕" }, { w: "eraser", e: "🧽" },
-        { w: "whistle", e: "😗" }, { w: "messy", e: "🌀" },
+        { w: "whistle", e: "😗" }, { w: "popsicle", e: "🍡" },
       ],
       final: [
         { w: "bus", e: "🚌" }, { w: "house", e: "🏠" }, { w: "dress", e: "👗" },
@@ -61,7 +61,7 @@ const SOUNDS = {
         { w: "ladder", e: "🪜" }, { w: "lollipop", e: "🍭" },
       ],
       medial: [
-        { w: "balloon", e: "🎈" }, { w: "jelly", e: "🍮" }, { w: "yellow", e: "🟡" },
+        { w: "balloon", e: "🎈" }, { w: "jelly", e: "🍮" }, { w: "helicopter", e: "🚁" },
         { w: "koala", e: "🐨" }, { w: "salad", e: "🥗" }, { w: "umbrella", e: "☂️" },
         { w: "pillow", e: "🛏️" }, { w: "violin", e: "🎻" },
       ],
@@ -203,17 +203,29 @@ const LEVELS = [
   { id: "sentence", label: "Sentence", premium: true  },
 ];
 
-/* Carrier phrases/sentences wrap the target word for higher levels. */
+/* Carrier phrases/sentences wrap the target word for higher levels.
+   Tokens are resolved grammatically at runtime (see fillCarrier in app.js):
+     {a}    -> a / an / some   (agrees with the word)
+     {this} -> this / these
+   The "the" carriers work with any word, so they need no token. */
 const CARRIERS = {
-  phrase: ["a big ___", "my little ___", "I see a ___", "look, a ___", "this ___"],
+  phrase: ["{a} ___", "{a} big ___", "my ___", "{this} ___", "I see {a} ___"],
   sentence: [
     "I can see the ___ over there.",
     "Can you find the ___ for me?",
-    "Look at the funny ___ go!",
-    "I really like that ___.",
-    "We found a ___ on our safari.",
+    "Look at the funny ___!",
+    "I really like {this} ___.",
+    "We found {a} ___ on our safari.",
   ],
 };
+
+/* Words that don't take "a/an": mass nouns and plural-only nouns.
+   Used by fillCarrier so phrases/sentences stay grammatical. */
+const UNCOUNTABLE = new Set([
+  "soup", "soap", "ice", "juice", "rain", "gold", "milk",
+  "sugar", "coffee", "popcorn", "washing", "fishing", "math",
+]);
+const PLURAL = new Set(["glasses", "dishes", "chips", "matches", "teeth"]);
 
 /* Safari scenes the explorer travels through as they collect animals. */
 const SCENES = [

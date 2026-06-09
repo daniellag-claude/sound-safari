@@ -11,11 +11,66 @@ const CONTACT_HINT = "WhatsApp us on 083 655 3095 to sort out payment and get yo
    Leave "" to run in simple/honesty mode using the local list in codes.js. */
 const BACKEND_URL = "https://script.google.com/macros/s/AKfycbzEjC8cmk8eQrzsVgrlK8_YBJGx7ObNQouf9kykUhbeJHtZvlAenJcFcd4W5DAhtUL2Yg/exec";
 
+/* Your personal master code. Always unlocks, on ANY device, and is never
+   device-bound by the backend. For demos and your own phones. */
+const MASTER_CODE = "DANI-MASTER";
+const isMasterCode = c => (c || "").trim().toUpperCase() === MASTER_CODE;
+
 /* ---- tiny helpers ---- */
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const shuffle = a => { const x = a.slice(); for (let i = x.length - 1; i > 0; i--) { const j = (i * 7 + 3) % (i + 1); [x[i], x[j]] = [x[j], x[i]]; } return x; };
 const pick = (arr, i) => arr[i % arr.length];
+
+/* ---- grammar: keep carrier phrases/sentences correct ----
+   indefinite article: "a" / "an", or "some" for mass & plural nouns.
+   demonstrative: "this" / "these". */
+function wordKind(w) {
+  if (typeof PLURAL !== "undefined" && PLURAL.has(w)) return "plural";
+  if (typeof UNCOUNTABLE !== "undefined" && UNCOUNTABLE.has(w)) return "uncountable";
+  return "singular";
+}
+function demonstrative(w) { return wordKind(w) === "plural" ? "these" : "this"; }
+/* Fill a carrier template. `shown` lets the on-screen version blank the
+   target word while the spoken version uses the real word. */
+function fillCarrier(tpl, w, shown) {
+  const noun = shown === undefined ? w : shown;
+  let out = tpl;
+  if (out.includes("{a}")) {
+    let art;
+    if (wordKind(w) !== "singular") {
+      art = "some";                 // mass & plural nouns: "some milk", "some glasses"
+    } else {
+      // a/an agrees with the word right after the article (could be an adjective)
+      const next = out.split("{a}")[1].trim().split(/\s+/)[0];
+      const head = next === "___" ? w : next;
+      art = /^[aeiou]/i.test(head) ? "an" : "a";
+    }
+    out = out.replace("{a}", art);
+  }
+  return out.replace("{this}", demonstrative(w)).replace("___", noun);
+}
+
+/* ---- voice: prefer a British (en-GB) voice ----
+   Voices load asynchronously (Safari fires `voiceschanged` late), so we
+   cache the best match and refresh it when the list arrives. */
+let GB_VOICE = null;
+function refreshVoice() {
+  if (!("speechSynthesis" in window)) return null;
+  const vs = speechSynthesis.getVoices();
+  if (!vs.length) return GB_VOICE;
+  const isGB = v => /en[-_]?GB/i.test(v.lang) || /\bUK\b|British|Daniel|Kate|Serena|Arthur|Oliver/i.test(v.name);
+  GB_VOICE =
+    vs.find(v => isGB(v) && /^en/i.test(v.lang)) ||
+    vs.find(v => /^en/i.test(v.lang)) ||
+    vs[0];
+  return GB_VOICE;
+}
+function britishVoice() { return GB_VOICE || refreshVoice(); }
+if ("speechSynthesis" in window) {
+  refreshVoice();
+  speechSynthesis.onvoiceschanged = refreshVoice;
+}
 
 /* ============================================================
    DEVICE ID  (stable per browser/device, used for device-binding)
@@ -59,6 +114,8 @@ function refreshLockBadge() {
    Returns { ok:boolean, reason?:string }
    ============================================================ */
 async function redeemCode(code) {
+  // master code: always valid on any device, never hits the backend
+  if (isMasterCode(code)) return { ok: true };
   if (BACKEND_URL) {
     try {
       const url = `${BACKEND_URL}?action=redeem&code=${encodeURIComponent(code)}&device=${encodeURIComponent(deviceId())}`;
@@ -78,6 +135,7 @@ async function redeemCode(code) {
    Only LOCKS on an explicit "no" — never on a network error (offline grace). */
 async function verifyOnLoad() {
   if (!BACKEND_URL || !Store.isUnlocked() || !Store.code()) return;
+  if (isMasterCode(Store.code())) return; // master code is never re-checked or locked
   try {
     const url = `${BACKEND_URL}?action=check&code=${encodeURIComponent(Store.code())}&device=${encodeURIComponent(deviceId())}`;
     const res = await fetch(url);
@@ -196,9 +254,13 @@ const Game = {
     if (sel.level === "word") {
       return { emoji: word.e, carrier: "", text: word.w, speak: word.w };
     }
-    const carrier = pick(CARRIERS[sel.level], this.idx);
-    const filled = carrier.replace("___", word.w);
-    return { emoji: word.e, carrier: carrier.replace("___", "____"), text: word.w, speak: filled };
+    const tpl = pick(CARRIERS[sel.level], this.idx);
+    return {
+      emoji: word.e,
+      carrier: fillCarrier(tpl, word.w, "____"),
+      text: word.w,
+      speak: fillCarrier(tpl, word.w),
+    };
   },
 
   render() {
@@ -228,6 +290,9 @@ const Game = {
     const d = this.decorate(this.current());
     speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(d.speak);
+    const v = britishVoice();
+    if (v) u.voice = v;
+    u.lang = (v && v.lang) || "en-GB";
     u.rate = 0.85; u.pitch = 1.05;
     speechSynthesis.speak(u);
   },
@@ -241,10 +306,14 @@ const Game = {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       this.chunks = [];
-      this.mediaRec = new MediaRecorder(stream);
-      this.mediaRec.ondataavailable = e => this.chunks.push(e.data);
+      // Safari can't record webm - it uses mp4/aac. Pick a supported type
+      // instead of forcing webm, or the recording won't play back.
+      const supports = t => window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t);
+      const mime = ["audio/webm", "audio/mp4", "audio/aac"].find(supports) || "";
+      this.mediaRec = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
+      this.mediaRec.ondataavailable = e => { if (e.data && e.data.size) this.chunks.push(e.data); };
       this.mediaRec.onstop = () => {
-        const blob = new Blob(this.chunks, { type: "audio/webm" });
+        const blob = new Blob(this.chunks, { type: this.mediaRec.mimeType || mime || "audio/mp4" });
         this.recURL = URL.createObjectURL(blob);
         $("#playBtn").disabled = false;
         btn.classList.remove("recording");
@@ -262,7 +331,10 @@ const Game = {
   },
 
   playBack() {
-    if (this.recURL) new Audio(this.recURL).play();
+    if (!this.recURL) return;
+    const a = new Audio(this.recURL);
+    const p = a.play();
+    if (p && p.catch) p.catch(() => alert("Couldn't play that recording. Try recording again."));
   },
 
   resetRecording() {

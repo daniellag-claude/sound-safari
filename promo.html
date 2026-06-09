@@ -133,41 +133,50 @@ const bar = document.getElementById("bar");
 const startEl = document.getElementById("start");
 const replay = document.getElementById("replay");
 
-// narration lines per slide (Web Speech)
-const narration = [
-  "Speech sound practice kids actually want to do.",
-  "Articulation drills get boring fast. Repetition is what works, but it's the hardest thing to keep a child doing.",
-  "Meet Sound Safari. Hear it. Say it. Record it. Collect the animal.",
-  "Built on the science. Massed practice, placement cues, and session data for your notes.",
-  "One safari, every sound. Nine sounds, three positions, from single words to sentences.",
-  "Play free. Unlock everything for a once-off two hundred rand. Pay once, it's yours forever.",
-  "Start the safari today. Speech sounds, made irresistible."
-];
-const DUR = 5200; // ms per slide
-let timers = [];
+// Pre-recorded narration (real voice). One audio clip per slide.
+// Plays as embedded audio so it sounds the same on every device/browser.
+const GAP = 550; // ms pause between lines
+const audio = slides.map((_, i) => { const a = new Audio(`audio/narration-${i}.m4a`); a.preload = "auto"; return a; });
+let idx = -1, running = false, gapTimer = null;
 
-function clearTimers(){ timers.forEach(t=>clearTimeout(t)); timers=[]; speechSynthesis && speechSynthesis.cancel(); }
+function stopAll(){
+  running = false;
+  if (gapTimer) { clearTimeout(gapTimer); gapTimer = null; }
+  audio.forEach(a => { try { a.pause(); a.currentTime = 0; } catch(e){} });
+}
+
+function advance(i, ms){
+  if (gapTimer) clearTimeout(gapTimer);
+  if (i < slides.length - 1) gapTimer = setTimeout(()=>{ if (running) show(i + 1); }, ms);
+  else { running = false; replay.style.display = "block"; }
+}
 
 function show(i){
+  idx = i;
   slides.forEach(s=>s.classList.remove("on"));
   const s = slides[i]; s.classList.add("on");
   if (s.dataset.bg) stage.style.background = s.dataset.bg;
-  // narrate
-  if ("speechSynthesis" in window && narration[i]) {
-    const u = new SpeechSynthesisUtterance(narration[i]);
-    u.rate = 0.96; u.pitch = 1.0;
-    speechSynthesis.speak(u);
-  }
   if (i === slides.length-1) burst();
+
+  const a = audio[i];
+  const dur = (a.duration && isFinite(a.duration)) ? a.duration : 5;
+  // progress bar fills across this slide's clip
+  bar.style.transition = "none"; bar.style.width = (i / slides.length * 100) + "%";
+  requestAnimationFrame(()=>{ bar.style.transition = `width ${dur}s linear`; bar.style.width = ((i + 1) / slides.length * 100) + "%"; });
+
+  a.currentTime = 0;
+  a.onended = () => { if (running && idx === i) advance(i, GAP); };
+  const p = a.play();
+  // if audio is blocked/missing, keep the promo moving on a timed fallback
+  if (p && p.catch) p.catch(()=>{ if (running && idx === i) advance(i, dur * 1000); });
 }
 
 function run(){
-  clearTimers();
+  stopAll();
+  running = true;
+  replay.style.display = "none";
   bar.style.transition = "none"; bar.style.width = "0";
-  const total = DUR * slides.length;
-  requestAnimationFrame(()=>{ bar.style.transition = `width ${total}ms linear`; bar.style.width = "100%"; });
-  slides.forEach((_, i)=> timers.push(setTimeout(()=>show(i), i*DUR)) );
-  timers.push(setTimeout(()=>{ replay.style.display="block"; }, total));
+  show(0);
 }
 
 function burst(){
